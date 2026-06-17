@@ -38,9 +38,11 @@ jobs:
       - name: Patcher minSdkVersion et compileSdkVersion
         run: |
           APP_GRADLE=/tmp/gangsms_base/android/app/build.gradle
-          sed -i 's/minSdkVersion [0-9]*/minSdkVersion 21/' "$APP_GRADLE" || true
-          sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 35/' "$APP_GRADLE" || true
-          sed -i 's/compileSdk = [0-9]*/compileSdk = 35/' "$APP_GRADLE" || true
+          sed -i -E 's/minSdkVersion[[:space:]]+[0-9]+/minSdkVersion 21/' "$APP_GRADLE" || true
+          sed -i -E 's/compileSdkVersion[[:space:]]+[0-9]+/compileSdkVersion 35/' "$APP_GRADLE" || true
+          sed -i -E 's/compileSdk[[:space:]]*=[[:space:]]*[0-9]+/compileSdk = 35/' "$APP_GRADLE" || true
+          sed -i -E 's/compileSdkVersion[[:space:]]+flutter\.compileSdkVersion/compileSdkVersion 35/' "$APP_GRADLE" || true
+          sed -i -E 's/compileSdk[[:space:]]*=[[:space:]]*flutter\.compileSdkVersion/compileSdk = 35/' "$APP_GRADLE" || true
           cat "$APP_GRADLE"
 
       - name: Installer les dépendances
@@ -53,10 +55,10 @@ jobs:
             if [ -d "$dir" ]; then
               echo "Patching pub cache dir: $dir"
               find "$dir" -type f -name build.gradle \
-                -exec sed -i -E 's/compileSdk = flutter\.compileSdkVersion/compileSdk = 35/g' {} + \
-                -exec sed -i -E 's/compileSdkVersion = flutter\.compileSdkVersion/compileSdkVersion = 35/g' {} + \
-                -exec sed -i -E 's/compileSdkVersion [0-9]+/compileSdkVersion 35/g' {} + \
-                -exec sed -i -E 's/compileSdk = [0-9]+/compileSdk = 35/g' {} +
+                -exec sed -i -E 's/compileSdk[[:space:]]*=[[:space:]]*flutter\.compileSdkVersion/compileSdk = 35/g' {} + \
+                -exec sed -i -E 's/compileSdkVersion[[:space:]]*=[[:space:]]*flutter\.compileSdkVersion/compileSdkVersion = 35/g' {} + \
+                -exec sed -i -E 's/compileSdkVersion[[:space:]]+[0-9]+/compileSdkVersion 35/g' {} + \
+                -exec sed -i -E 's/compileSdk[[:space:]]*=[[:space:]]*[0-9]+/compileSdk = 35/g' {} +
             else
               echo "Pub cache dir does not exist: $dir"
             fi
@@ -64,7 +66,7 @@ jobs:
           echo "Checking remaining compileSdk references..."
           for dir in "$HOME/.pub-cache/hosted/pub.dev" "$HOME/.pub-cache/hosted/pub.dartlang.org"; do
             if [ -d "$dir" ]; then
-              grep -R -n "flutter\.compileSdkVersion\|compileSdkVersion [0-9]\|compileSdk = [0-9]" "$dir" | head -20 || true
+              grep -R -n "flutter\.compileSdkVersion\|compileSdkVersion[[:space:]]+[0-9]+\|compileSdk[[:space:]]*=[[:space:]]*[0-9]+" "$dir" | head -20 || true
             fi
           done
 
