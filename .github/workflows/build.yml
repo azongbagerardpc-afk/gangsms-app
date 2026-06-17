@@ -35,16 +35,26 @@ jobs:
           cp android/app/src/main/AndroidManifest.xml \
              /tmp/gangsms_base/android/app/src/main/AndroidManifest.xml
 
-      - name: Patcher minSdkVersion
+      - name: Patcher minSdkVersion et compileSdkVersion
         run: |
           APP_GRADLE=/tmp/gangsms_base/android/app/build.gradle
           sed -i 's/minSdkVersion [0-9]*/minSdkVersion 21/' "$APP_GRADLE" || true
-          sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 34/' "$APP_GRADLE" || true
+          sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 35/' "$APP_GRADLE" || true
+          sed -i 's/compileSdk = [0-9]*/compileSdk = 35/' "$APP_GRADLE" || true
           cat "$APP_GRADLE"
 
       - name: Installer les dépendances
         working-directory: /tmp/gangsms_base
         run: flutter pub get
+
+      - name: Patcher les plugins Flutter incompatibles
+        run: |
+          find "$HOME/.pub-cache/hosted/pub.dartlang.org" -type f -name build.gradle \
+            -exec sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 35/g' {} + \
+            -exec sed -i 's/compileSdkVersion = flutter.compileSdkVersion/compileSdkVersion = 35/g' {} + || true
+          find "$HOME/.pub-cache/hosted/pub.dartlang.org" -type f -name build.gradle \
+            -exec sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 35/g' {} + \
+            -exec sed -i 's/compileSdk = [0-9]*/compileSdk = 35/g' {} + || true
 
       - name: Compiler l'APK
         working-directory: /tmp/gangsms_base
