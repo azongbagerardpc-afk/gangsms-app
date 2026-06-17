@@ -49,12 +49,24 @@ jobs:
 
       - name: Patcher les plugins Flutter incompatibles
         run: |
-          find "$HOME/.pub-cache/hosted/pub.dartlang.org" -type f -name build.gradle \
-            -exec sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 35/g' {} + \
-            -exec sed -i 's/compileSdkVersion = flutter.compileSdkVersion/compileSdkVersion = 35/g' {} + || true
-          find "$HOME/.pub-cache/hosted/pub.dartlang.org" -type f -name build.gradle \
-            -exec sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 35/g' {} + \
-            -exec sed -i 's/compileSdk = [0-9]*/compileSdk = 35/g' {} + || true
+          for dir in "$HOME/.pub-cache/hosted/pub.dev" "$HOME/.pub-cache/hosted/pub.dartlang.org"; do
+            if [ -d "$dir" ]; then
+              echo "Patching pub cache dir: $dir"
+              find "$dir" -type f -name build.gradle \
+                -exec sed -i -E 's/compileSdk = flutter\.compileSdkVersion/compileSdk = 35/g' {} + \
+                -exec sed -i -E 's/compileSdkVersion = flutter\.compileSdkVersion/compileSdkVersion = 35/g' {} + \
+                -exec sed -i -E 's/compileSdkVersion [0-9]+/compileSdkVersion 35/g' {} + \
+                -exec sed -i -E 's/compileSdk = [0-9]+/compileSdk = 35/g' {} +
+            else
+              echo "Pub cache dir does not exist: $dir"
+            fi
+          done
+          echo "Checking remaining compileSdk references..."
+          for dir in "$HOME/.pub-cache/hosted/pub.dev" "$HOME/.pub-cache/hosted/pub.dartlang.org"; do
+            if [ -d "$dir" ]; then
+              grep -R -n "flutter\.compileSdkVersion\|compileSdkVersion [0-9]\|compileSdk = [0-9]" "$dir" | head -20 || true
+            fi
+          done
 
       - name: Compiler l'APK
         working-directory: /tmp/gangsms_base
