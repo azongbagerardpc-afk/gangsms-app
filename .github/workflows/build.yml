@@ -1,0 +1,58 @@
+name: Build GangSMS APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Créer la base Flutter
+        run: |
+          flutter create /tmp/gangsms_base --org com.gerard --project-name gangsms
+          cp pubspec.yaml /tmp/gangsms_base/pubspec.yaml
+          rm -rf /tmp/gangsms_base/lib
+          cp -r lib /tmp/gangsms_base/lib
+          cp android/app/src/main/AndroidManifest.xml \
+             /tmp/gangsms_base/android/app/src/main/AndroidManifest.xml
+
+      - name: Patcher minSdkVersion
+        run: |
+          APP_GRADLE=/tmp/gangsms_base/android/app/build.gradle
+          sed -i 's/minSdkVersion [0-9]*/minSdkVersion 21/' "$APP_GRADLE" || true
+          sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 34/' "$APP_GRADLE" || true
+          cat "$APP_GRADLE"
+
+      - name: Installer les dépendances
+        working-directory: /tmp/gangsms_base
+        run: flutter pub get
+
+      - name: Compiler l'APK
+        working-directory: /tmp/gangsms_base
+        run: flutter build apk --release --no-tree-shake-icons
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: gangsms-release
+          path: /tmp/gangsms_base/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
